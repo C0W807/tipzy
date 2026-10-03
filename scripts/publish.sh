@@ -10,39 +10,39 @@ set -euo pipefail
 
 OWNER="${1:-c0w807}"
 REPO="${2:-tipzy}"
-SITE="https://$OWNER.github.io/$REPO/"
+SITE="https://${OWNER}.github.io/${REPO}/"
 
 command -v gh >/dev/null || { echo "Install the GitHub CLI first: brew install gh" >&2; exit 1; }
 WHO="$(gh api user --jq .login 2>/dev/null || true)"
-if [ -z "$WHO" ]; then
+if [ -z "${WHO}" ]; then
   echo "The GitHub CLI isn't signed in. Run: gh auth login -s workflow" >&2
   exit 1
 fi
 # GitHub logins are case-insensitive (the API may say C0W807 for c0w807).
-if [ "$(printf %s "$WHO" | tr '[:upper:]' '[:lower:]')" != "$(printf %s "$OWNER" | tr '[:upper:]' '[:lower:]')" ]; then
-  echo "The GitHub CLI is signed in as '$WHO', not '$OWNER'." >&2
-  echo "Run: gh auth login -s workflow   (choose the $OWNER account), then try again." >&2
+if [ "$(printf %s "${WHO}" | tr '[:upper:]' '[:lower:]')" != "$(printf %s "${OWNER}" | tr '[:upper:]' '[:lower:]')" ]; then
+  echo "The GitHub CLI is signed in as '${WHO}', not '${OWNER}'." >&2
+  echo "Run: gh auth login -s workflow   (choose the ${OWNER} account), then try again." >&2
   exit 1
 fi
 
-if gh repo view "$OWNER/$REPO" >/dev/null 2>&1; then
-  echo "Repo $OWNER/$REPO already exists; pushing to it."
+if gh repo view "${OWNER}/${REPO}" >/dev/null 2>&1; then
+  echo "Repo ${OWNER}/${REPO} already exists; pushing to it."
 else
-  echo "Creating public repo $OWNER/$REPO…"
-  gh repo create "$OWNER/$REPO" --public \
+  echo "Creating public repo ${OWNER}/${REPO}…"
+  gh repo create "${OWNER}/${REPO}" --public \
     --description "Tipzy: a clickable demo of cashless tipping by QR code. No real payments." \
-    --homepage "$SITE"
+    --homepage "${SITE}"
 fi
 
 if git remote get-url origin >/dev/null 2>&1; then
-  git remote set-url origin "https://github.com/$OWNER/$REPO.git"
+  git remote set-url origin "https://github.com/${OWNER}/${REPO}.git"
 else
-  git remote add origin "https://github.com/$OWNER/$REPO.git"
+  git remote add origin "https://github.com/${OWNER}/${REPO}.git"
 fi
 
 enable_pages() {
-  gh api -X POST "repos/$OWNER/$REPO/pages" -f build_type=workflow >/dev/null 2>&1 ||
-    gh api -X PUT "repos/$OWNER/$REPO/pages" -f build_type=workflow >/dev/null 2>&1
+  gh api -X POST "repos/${OWNER}/${REPO}/pages" -f build_type=workflow >/dev/null 2>&1 ||
+    gh api -X PUT "repos/${OWNER}/${REPO}/pages" -f build_type=workflow >/dev/null 2>&1
 }
 
 # Pages first if GitHub allows it on an empty repo, so the first push deploys.
@@ -51,15 +51,15 @@ enable_pages || PAGES_LATER=1
 
 git -c credential.helper= -c credential.helper='!gh auth git-credential' push -u origin main
 
-if [ -n "$PAGES_LATER" ]; then
+if [ -n "${PAGES_LATER}" ]; then
   enable_pages
   sleep 3
-  gh workflow run pages.yml --repo "$OWNER/$REPO" --ref main
+  gh workflow run pages.yml --repo "${OWNER}/${REPO}" --ref main
 fi
 
 echo "Waiting for the deploy to finish…"
 sleep 8
-RUN_ID="$(gh run list --repo "$OWNER/$REPO" --workflow pages.yml --limit 1 --json databaseId --jq '.[0].databaseId')"
-gh run watch "$RUN_ID" --repo "$OWNER/$REPO" --exit-status
+RUN_ID="$(gh run list --repo "${OWNER}/${REPO}" --workflow pages.yml --limit 1 --json databaseId --jq '.[0].databaseId')"
+gh run watch "${RUN_ID}" --repo "${OWNER}/${REPO}" --exit-status
 echo
-echo "Live at $SITE"
+echo "Live at ${SITE}"
