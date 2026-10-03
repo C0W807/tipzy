@@ -18,7 +18,8 @@ if [ -z "$WHO" ]; then
   echo "The GitHub CLI isn't signed in. Run: gh auth login -s workflow" >&2
   exit 1
 fi
-if [ "$WHO" != "$OWNER" ]; then
+# GitHub logins are case-insensitive (the API may say C0W807 for c0w807).
+if [ "$(printf %s "$WHO" | tr '[:upper:]' '[:lower:]')" != "$(printf %s "$OWNER" | tr '[:upper:]' '[:lower:]')" ]; then
   echo "The GitHub CLI is signed in as '$WHO', not '$OWNER'." >&2
   echo "Run: gh auth login -s workflow   (choose the $OWNER account), then try again." >&2
   exit 1
